@@ -37,3 +37,5 @@ Develop an algorithm to find the optimal optical scheme for the specified parame
 Spot Root Mean Square shows how well parallel incoming rays are focused at the destination, and is calculated for 5 different points of view
 
 ![image](https://github.com/Gerbylev/Optics-Hackathon/assets/33491221/38fd6ca6-52d4-46d0-beb7-5d8984d52f38)
+
+pip install -r requirements.txt 

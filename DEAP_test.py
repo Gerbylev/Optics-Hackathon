@@ -167,25 +167,34 @@ def generate_random_system(fine_tune_system, is_first_lens):
         t_prev_air = random.uniform(0.8, 1.0)
 
     else:
-        k = random.uniform(0.0, 1.0)  
+        k = random.uniform(0.001, 1.0)  
         t = random.uniform(0.001, 1.0)
         sd_1 = random.uniform(1.1, 1.9)            
         sd_2 = random.uniform(1.1, 1.9) 
         t_prev_air = random.uniform(0.001, 1.0)
+        
+        k_2 = random.uniform(0.001, 1.0)  
+        t_1 = random.uniform(0.001, 1.0)
+        sd_3 = random.uniform(1.6, 2.9)            
+        sd_4 = random.uniform(1.6, 2.9) 
+        t_prev_air_1 = random.uniform(0.001, 1.0)
+        
         # Генерация радиуса кривизны
         # для линзы и слоя воздуха они 
         # должны быть одного знака и каждый 
         # не может быть меньше 0.6 по модулю
         
         if random.uniform(0.0, 1.0) >= 0.5 or is_first_lens:
-            r_1 = random.uniform(1.0, 10.0)       # r - радиус кривизны (замещает величину кривизны "curvature")
+            r_1 = random.uniform(1.01, 10.0)       # r - радиус кривизны (замещает величину кривизны "curvature")
             r_2 = random.uniform(1.0, 10.0)
-        else:
-            r_1 = random.uniform(-10.0, -1.0)
-            r_2 = random.uniform(-10.0, -1.0)
+            r_3 = random.uniform(-10.0, -1.01)
+            r_4 = random.uniform(-10.0, -1.01)
     
     if is_first_lens:
-        system.extend([k, t, sd_1, r_1, sd_2, r_2])
+        system.extend([
+            k, t, sd_1, r_1, sd_2, r_2, t_prev_air_1,
+            k_2, t_1, sd_3, r_3, sd_4, r_4
+            ])
     else:
         system.extend([k, t, sd_1, r_1, sd_2, r_2, t_prev_air]) # если линза не первая, генерируем ширину слоя воздуха после предыдущей линзы до текущей
 
@@ -236,40 +245,64 @@ def evaluate_system(system):
         # 2 surface - air
     sd_2 = system[4]
     r_2 = system[5]
-    t_2=6.8 - (t_1)
+    t_2=system[6]
     curvature_2 = r_2 #-0.2568888474926888
     coefs_2 = [0.0, -0.002874728268075267, -0.03373322938525211, 0.004205227876537139, -0.0001705765222318475, 0.0, 0.0, 0.0] #[0., 0., -1.131e-1, -7.863e-2, 1.094e-1, 6.228e-3, -2.216e-2, -5.89e-3, 4.123e-3, 1.041e-3]
 
     sm.add_surface([curvature_2, t_2], sd=sd_2)
     sm.ifcs[sm.cur_surface].profile = EvenPolynomial(r=r_2,coefs=coefs_2)
+    
+        # 3 surface - lens    
+    k_3 = system[7]
+    t_3 = system[8] # 0.0001 < t < 1.0
+
+    medium_1_3 = 1.54 * k_3 + 1.67 * (1 - k_3)
+    medium_2_3 = 75.0 * k_3 + 39.0 * (1 - k_3)
+    sd_3 = system[9]
+    r_3 = system[10]
+    curvature_3 = r_3 # according to doc this parameter is ovverwritten by radius 'r'
+    coefs_3 = [0.0, -0.0231369463217776, 0.011956554928461116, -0.017782670650182023, 0.004077846642272649, 0.0, 0.0, 0.0]
+
+    sm.add_surface([curvature_3, t_3, medium_1_3, medium_2_3], sd=sd_3)
+    sm.ifcs[sm.cur_surface].profile = EvenPolynomial(r=r_3, coefs=coefs_3)
+
+    # 4 surface - air
+    sd_4 = system[11]
+    t_4 = 6.8 - (t_1 + t_2 + t_3)
+    r_4 = system[12]
+    curvature_4 = r_4
+    coefs_4 = [0., 0., -1.131e-1, -7.863e-2, 1.094e-1, 6.228e-3, -2.216e-2, -5.89e-3, 4.123e-3, 1.041e-3]
+    sm.add_surface([curvature_4, t_4], sd=sd_4)
+    sm.ifcs[sm.cur_surface].profile = EvenPolynomial(r=r_4,coefs=coefs_4)
+
+ 
     opm.update_model()
     return [calc_loss_mute(opm)]
 
-test=generate_random_system(1,0)
+test=generate_random_system(0,1)
 result = evaluate_system(test)  # Здесь вызываем функцию evaluate_system
-print(type(result))
+print(result)
 
 #Creating obgects
 creator.create("FitnessMin", base.Fitness, weights=(-1.0,))
 creator.create("Individual", list, fitness=creator.FitnessMin)
 
-#Initialization
-IND_SIZE = 10
 
 toolbox = base.Toolbox()
-toolbox.register("attribute", generate_random_system, fine_tune_system=1, is_first_lens=0)
+toolbox.register("attribute", generate_random_system, fine_tune_system=0, is_first_lens=1)
 toolbox.register("individual", tools.initIterate, creator.Individual,
                  toolbox.attribute)
 toolbox.register("population", tools.initRepeat, list, toolbox.individual)
 
 #Operators
+toolbox.register("mate", tools.cxOnePoint)
 toolbox.register("mutate", tools.mutGaussian, mu=0, sigma=1, indpb=0.1)
 toolbox.register("select", tools.selTournament, tournsize=3) 
 toolbox.register("evaluate", evaluate_system)
 
 def main():
-    CXPB, MUTPB, NGEN = 0.5, 0.2, 40
-    population = toolbox.population(n=300)
+    CXPB, MUTPB, NGEN = 0.5, 0.2, 20
+    population = toolbox.population(n=32)
     population, logbook = algorithms.eaSimple(population, toolbox,
                                         cxpb=CXPB,
                                         mutpb=MUTPB,
@@ -278,4 +311,4 @@ def main():
     stats = tools.Statistics(lambda ind: ind.fitness.values)
     return population, logbook
 population, logbook = main()
-print(population)
+print(evaluate_system(population[-1]))

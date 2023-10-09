@@ -275,7 +275,7 @@ def evaluate_system(system):
     sm.add_surface([curvature_4, t_4], sd=sd_4)
     sm.ifcs[sm.cur_surface].profile = EvenPolynomial(r=r_4,coefs=coefs_4)
 
- 
+
     opm.update_model()
     return [calc_loss_mute(opm)]
 
@@ -301,8 +301,8 @@ toolbox.register("select", tools.selTournament, tournsize=3)
 toolbox.register("evaluate", evaluate_system)
 
 def main():
-    CXPB, MUTPB, NGEN = 0.5, 0.2, 20
-    population = toolbox.population(n=32)
+    CXPB, MUTPB, NGEN = 0.5, 0.2, 10
+    population = toolbox.population(n=16)
     population, logbook = algorithms.eaSimple(population, toolbox,
                                         cxpb=CXPB,
                                         mutpb=MUTPB,
@@ -311,4 +311,4 @@ def main():
     stats = tools.Statistics(lambda ind: ind.fitness.values)
     return population, logbook
 population, logbook = main()
-print(evaluate_system(population[-1]))
+print(evaluate_system(population[0]))

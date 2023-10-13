@@ -193,6 +193,9 @@ def generate_random_system():
     system.extend(generate_random_coefficients([0., 0., -1.895e-2, 2.426e-2, -5.123e-2, 8.371e-4, 7.850e-3, 4.091e-3, -7.732e-3, -4.265e-3]))
     system.extend(generate_random_coefficients([0., 0., -4.966e-3, -1.434e-2, -6.139e-3, -9.284e-5, 6.438e-3, -5.72e-3, -2.385e-2, 1.108e-2]))
     system.extend(generate_random_coefficients([0., 0., -4.388e-2, -2.555e-2, 5.16e-2, -4.307e-2, -2.831e-2, 3.162e-2, 4.630e-2, -4.877e-2]))
+    system.extend(generate_random_coefficients([0., 0., -1.131e-1, -7.863e-2, 1.094e-1, 6.228e-3, -2.216e-2, -5.89e-3, 4.123e-3, 1.041e-3]))
+    system.extend(generate_random_coefficients([0., 0., -7.876e-2, 7.02e-2, 1.575e-3, -9.958e-3, -7.322e-3, 6.914e-4, 2.54e-3, -7.65e-4]))
+    system.extend([air_t_3,t_3,k_3])
     return system
 
 
@@ -260,6 +263,26 @@ def evaluate_system(system):
         sm.add_surface([-4.182, t_2, medium_1_2, medium_2_2])
         sm.ifcs[sm.cur_surface].profile = RadialPolynomial(r=-4.182, ec=2.105,
                                 coefs=coefs_3)
+        
+        air_t_3=system[56]
+        
+        coefs_4=system[36:46]
+
+        sm.add_surface([-6.367, air_t_3])
+        sm.ifcs[sm.cur_surface].profile = RadialPolynomial(r=-6.367, ec=3.382,
+                                coefs=coefs_4)
+        
+        t_3 = system[3]
+        k_3 = system[4]
+
+        medium_1_3 = 1.54 * k_3 + 1.67 * (1 - k_3)
+        medium_2_3 = 75.0 * k_3 + 39.0 * (1 - k_3)
+        
+        coefs_5=system[46:56]
+        
+        sm.add_surface([-6.182, t_3, medium_1_3, medium_2_3])
+        sm.ifcs[sm.cur_surface].profile = RadialPolynomial(r=-6.182, ec=2.105,
+                                coefs=coefs_5)
 
         air_t_2=system[5]
 
@@ -267,7 +290,7 @@ def evaluate_system(system):
         
         opm.update_model()
         return [calc_loss_mute(opm)]
-    except: return[10000000]
+    except: return[1000000000]
 
 test=generate_random_system()
 result = evaluate_system(test)  # Здесь вызываем функцию evaluate_system

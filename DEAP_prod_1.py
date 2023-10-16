@@ -205,19 +205,48 @@ def generate_random_system():
     r_2 = random.uniform(-6.0, -1.01)
     air_r_2 = random.uniform(-6.0, -1.01)
     
-    r_3 = random.uniform(-10.0, -2.01)
-    air_r_3 = random.uniform(1.001, 10.0)
+    random_list = [random.choice([-1, 1]) for _ in range(5)]
+    r_3 = random.uniform(1.001, 10.0)*random_list[0]
+    air_r_3 = random.uniform(1.001, 10.0)*random_list[1]
     
-    r_4 = random.uniform(1.001, 10.0)
-    air_r_4 = random.uniform(1.001, 10.0)
+    r_4 = random.uniform(1.001, 10.0)*random_list[2]
+    air_r_4 = random.uniform(1.001, 10.0)*random_list[3]
     
-    r_5 = random.uniform(1.001, 10.0)
+    r_5 = random.uniform(1.001, 10.0)*random_list[4]
     
-    system.extend([t_1,k_1,air_t_1,t_2,k_2,air_t_2])
+    sd_1=random.uniform(0.601, 3)
+    air_sd_1=random.uniform(1.001, 3)
+    
+    sd_2=random.uniform(0.6, 3)
+    air_sd_2=random.uniform(1.001, 3.0)
+    
+    sd_3=random.uniform(0.6001, 3.0)
+    air_sd_3=random.uniform(1.001, 3.0)
+    
+    sd_4=random.uniform(0.6001, 3.0)
+    air_sd_4=random.uniform(1.001, 3.0)
+    
+    sd_5=random.uniform(0.6001, 3.0)
+
+    
+    system.extend([
+        t_1,k_1,air_t_1,
+                   t_2,k_2,air_t_2,
+                   t_3,k_3,air_t_3,
+                   t_4,k_4,air_t_4,
+                   t_5,k_5,air_t_5,
+                   r_1, air_r_1, r_2, air_r_2 ,r_3 ,air_r_3 ,r_4 ,air_r_4 , r_5,
+                   ])
     system.extend(generate_random_coefficients())
     system.extend(generate_random_coefficients())
     system.extend(generate_random_coefficients())
-    system.extend([r_1,r_2,r_3])
+    system.extend(generate_random_coefficients())
+    system.extend(generate_random_coefficients())
+    system.extend(generate_random_coefficients())
+    system.extend(generate_random_coefficients())
+    system.extend(generate_random_coefficients())
+    system.extend(generate_random_coefficients())
+    system.extend([sd_1, air_sd_1, sd_2, air_sd_2 ,sd_3 ,air_sd_3 ,sd_4 ,air_sd_4 , sd_5])
     return system
 
 
@@ -254,46 +283,117 @@ def evaluate_system(system):
         sm.add_surface([0., 0.])
         sm.set_stop()
         
-        r_1=system[36]
+        sd_1=system[114]
+        r_1=system[15]
         t_1 = system[0]
         k_1 = system[1]
 
         medium_1_1 = 1.54 * k_1 + 1.67 * (1 - k_1)
         medium_2_1 = 75.0 * k_1 + 39.0 * (1 - k_1)
         
-        coefs_1=system[6:16]
+        coefs_1=system[24:34]
 
-        sm.add_surface([r_1,t_1 , medium_1_1, medium_2_1])
-        sm.ifcs[sm.cur_surface].profile = RadialPolynomial(r=r_1,
+        sm.add_surface([r_1,t_1 , medium_1_1, medium_2_1],sd=sd_1)
+        sm.ifcs[sm.cur_surface].profile = EvenPolynomial(r=r_1,
                                 coefs=coefs_1)
-
-        air_t_1=system[2]
-        r_2=system[37]
-        coefs_2=system[16:26]
-
-        sm.add_surface([r_2, air_t_1])
-        sm.ifcs[sm.cur_surface].profile = RadialPolynomial(r=r_2,
-                                coefs=coefs_2)
         
-        r_3=system[38]
+        air_sd_1=system[115]
+        air_r_1=system[16]
+        air_t_1=system[2]
+        air_coefs_1=system[34:44]
+
+        sm.add_surface([air_r_1, air_t_1],sd=air_sd_1)
+        sm.ifcs[sm.cur_surface].profile = EvenPolynomial(r=air_r_1,
+                                coefs=air_coefs_1)
+        
+        sd_2=system[116]
+        r_2=system[17]
         t_2 = system[3]
         k_2 = system[4]
 
         medium_1_2 = 1.54 * k_2 + 1.67 * (1 - k_2)
         medium_2_2 = 75.0 * k_2 + 39.0 * (1 - k_2)
         
-        coefs_3=system[26:36]
+        coefs_2=system[44:54]
         
-        sm.add_surface([r_3, t_2, medium_1_2, medium_2_2])
-        sm.ifcs[sm.cur_surface].profile = RadialPolynomial(r=r_3,
-                                coefs=coefs_3)
-
+        sm.add_surface([r_2, t_2, medium_1_2, medium_2_2], sd=sd_2)
+        sm.ifcs[sm.cur_surface].profile = EvenPolynomial(r=r_2,
+                                coefs=coefs_2)
+        
+        air_sd_2=system[117]
+        air_r_2=system[18]
         air_t_2=system[5]
+        air_coefs_2=system[54:64]
 
-        sm.add_surface([0.,air_t_2])
+        sm.add_surface([air_r_2, air_t_2], sd=air_sd_2)
+        sm.ifcs[sm.cur_surface].profile = EvenPolynomial(r=air_r_2,
+                                coefs=air_coefs_2)
+        
+        sd_3=system[118]
+        r_3=system[19]
+        t_3 = system[6]
+        k_3 = system[7]
+
+        medium_1_3 = 1.54 * k_3 + 1.67 * (1 - k_3)
+        medium_2_3 = 75.0 * k_3 + 39.0 * (1 - k_3)
+        
+        coefs_3=system[64:74]
+        
+        sm.add_surface([r_3, t_3, medium_1_3, medium_2_3],sd=sd_3)
+        sm.ifcs[sm.cur_surface].profile = EvenPolynomial(r=r_3,
+                                coefs=coefs_3)
+        
+        air_sd_3=system[119]
+        air_r_3=system[20]
+        air_t_3=system[8]
+        air_coefs_3=system[74:84]
+
+        sm.add_surface([air_r_3, air_t_3], sd=air_sd_3)
+        sm.ifcs[sm.cur_surface].profile = EvenPolynomial(r=air_r_3,
+                                coefs=air_coefs_3)
+        
+        sd_4=system[120]
+        r_4=system[21]
+        t_4 = system[9]
+        k_4 = system[10]
+
+        medium_1_4 = 1.54 * k_4 + 1.67 * (1 - k_4)
+        medium_2_4 = 75.0 * k_4 + 39.0 * (1 - k_4)
+        
+        coefs_4=system[84:94]
+        
+        sm.add_surface([r_4, t_4, medium_1_4, medium_2_4],sd=sd_4)
+        sm.ifcs[sm.cur_surface].profile = EvenPolynomial(r=r_4,
+                                coefs=coefs_4)
+        
+        air_sd_4=system[121]
+        air_r_4=system[22]
+        air_t_4=system[11]
+        air_coefs_4=system[94:104]
+
+        sm.add_surface([air_r_4, air_t_4], sd=air_sd_4)
+        sm.ifcs[sm.cur_surface].profile = EvenPolynomial(r=air_r_4,
+                                coefs=air_coefs_4)
+        
+        sd_5=system[122]
+        r_5=system[23]
+        t_5 = system[12]
+        k_5 = system[13]
+
+        medium_1_5 = 1.54 * k_5 + 1.67 * (1 - k_5)
+        medium_2_5 = 75.0 * k_5 + 39.0 * (1 - k_5)
+        
+        coefs_5=system[104:114]
+        
+        sm.add_surface([r_5, t_5, medium_1_5, medium_2_5],sd=sd_5)
+        sm.ifcs[sm.cur_surface].profile = EvenPolynomial(r=r_5,
+                                coefs=coefs_5)
+
+        air_t_5=system[14]
+
+        sm.add_surface([0.,air_t_5])
         
         opm.update_model()
-        opm.save_model('ivan.roa')
         return [calc_loss_mute(opm)]
     except: return[10000000]
 
@@ -306,7 +406,7 @@ print(result)
 def custom_mutate(individual, mu, sigma, indpb):
     for i in range(len(individual)):
         # Первый и третий параметры оставляем без мутации
-        if i not in  [0, 1, 2, 3, 4, 5, 6,]:
+        if i not in  [0, 1, 2, 3, 4, 5, 6,7,8,9,10,11,12,13,14]:
             individual[i] += random.gauss(mu, sigma) if random.random() < indpb else 0.0
     return individual,
 
@@ -363,7 +463,7 @@ toolbox.register("select", tools.selTournament, tournsize=3)
 toolbox.register("evaluate", evaluate_system)
 
 def main():
-    CXPB, MUTPB, NGEN = 0.5, 0.2, 100
+    CXPB, MUTPB, NGEN = 0.5, 0.2, 30
     population = toolbox.population(n=64)
     population, logbook = algorithms.eaSimple(population, toolbox,
                                         cxpb=CXPB,

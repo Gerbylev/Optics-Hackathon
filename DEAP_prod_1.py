@@ -172,24 +172,46 @@ def generate_random_system():
     2) добавить аргумент,который определяет что линза последняя, для нее не будет 
     генирироваться толщина эта функция будет вызываться внутри фунции создающую  модель"""
     system = []
-    t_1=random.uniform(0.6,1.8)
+    t_1=random.uniform(0.6,1.6)
     k_1=random.uniform(0.001, 1.0)
     
-    air_t_1=random.uniform(0.7,1.3)
+    air_t_1=random.uniform(0.7,1.2)
     
-    t_2=random.uniform(1,0.5)
+    t_2=random.uniform(0.5,1)
     k_2=random.uniform(0.001, 1.0)
-    
-    air_t_3=random.uniform(0.7,1.3)
-    
-    t_3=random.uniform(0.35,1.2)
-    k_3=random.uniform(0.001, 1.0)
     
     air_t_2=random.uniform(0.35,1)
     
-    r_1 = random.uniform(1.001, 10.0)       # r - радиус кривизны (замещает величину кривизны "curvature")
-    r_2 = random.uniform(1.001, 10.0)
-    r_3 = random.uniform(-10.0, -1.01)
+    t_3=random.uniform(0.35,1)
+    k_3=random.uniform(0.001, 1.0)
+    
+    air_t_3=random.uniform(0.4,0.8)
+    
+    t_4=random.uniform(0.4, 0.6)
+    k_4=random.uniform(0.001, 1.0)
+    
+    air_t_4=random.uniform(0.35,0.6)
+    
+    t_5=random.uniform(0.35,0.6)
+    k_5=random.uniform(0.001, 1.0)
+    
+    air_t_5=random.uniform(0.4,0.8)
+    
+    
+    
+    r_1 = random.uniform(1.001, 10.0)
+    air_r_1 = random.uniform(1.001, 10.0)
+    
+    r_2 = random.uniform(-6.0, -1.01)
+    air_r_2 = random.uniform(-6.0, -1.01)
+    
+    r_3 = random.uniform(-10.0, -2.01)
+    air_r_3 = random.uniform(1.001, 10.0)
+    
+    r_4 = random.uniform(1.001, 10.0)
+    air_r_4 = random.uniform(1.001, 10.0)
+    
+    r_5 = random.uniform(1.001, 10.0)
     
     system.extend([t_1,k_1,air_t_1,t_2,k_2,air_t_2])
     system.extend(generate_random_coefficients())

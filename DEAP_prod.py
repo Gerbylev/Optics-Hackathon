@@ -1,10 +1,8 @@
 from matplotlib.colors import LogNorm, PowerNorm, Normalize
 from rayoptics.util.misc_math import normalize
 from contextlib import redirect_stdout
-from deap import base, creator, tools
+from deap import base, creator, tools, algorithms
 from rayoptics.environment import *
-from deap import base, algorithms
-from deap import tools
 import numpy as np
 import random
 isdark = False

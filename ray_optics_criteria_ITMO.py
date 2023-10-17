@@ -1,38 +1,16 @@
+isdark = False
+from rayoptics.environment import *
 from matplotlib.colors import LogNorm, PowerNorm, Normalize
 from rayoptics.util.misc_math import normalize
-from contextlib import redirect_stdout
-from deap import base, creator, tools
-from rayoptics.environment import *
-from deap import base, algorithms
-from deap import tools
-import numpy as np
-import random
-isdark = False
 import re
 import io
+from contextlib import redirect_stdout
 
 
-def generate_random_coefficients(num_coeffs=8, min_value=-0.0001, max_value=0.0001):
-    """Генерирует случайные коэффициенты для RadialPolynomial.
-
-    Args:
-        num_coeffs (int): Количество коэффициентов для генерации.
-        min_value (float): Минимальное значение коэффициента.
-        max_value (float): Максимальное значение коэффициента.
-
-    Returns:
-        list: Список случайных коэффициентов.
-    """
-    coefficients_1 = [random.uniform(min_value, max_value) for _ in range(num_coeffs)]
-    coefficients=[0,0]
-    coefficients.extend(coefficients_1)
-    return coefficients
-
-
-
-def calc_loss_mute(path2model):
+# base_param
+def calc_loss(path2model):
     efl_for_loss=5                      #mm
-    fD_for_loss=2.1
+    fD_for_loss=2.1                       
     total_length_for_loss=7.0             #mm
     radius_enclosed_energy_for_loss=50    #micron
     perc_max_enclosed_energy_for_loss=80    #%
@@ -72,7 +50,7 @@ def calc_loss_mute(path2model):
         number_of_surfaces=len(rows)-2
         return thickness_list, thickness_material_list, thickness_air_list, number_of_surfaces
 
-    opm = path2model#open_model(f'{path2model}', info=True)
+    opm = path2model
 
     sm = opm['seq_model']
     osp = opm['optical_spec']
@@ -94,20 +72,23 @@ def calc_loss_mute(path2model):
     to_df = compute_third_order(opm)
 
     tr_df=to_df.apply(to.seidel_to_transverse_aberration, axis='columns', args=(n_last,u_last))
-    distortion=tr_df.to_numpy()[-1,5]
+    distortion=tr_df.to_numpy()[-1,5]        
 
     field=0
     psf = SpotDiagramFigure(opm)
     test_psf = psf.axis_data_array[field][0][0][0]
     test_psf[:,1]=test_psf[:,1]-np.mean(test_psf[:,1])
+    plt.plot(test_psf[:,0],test_psf[:,1],'o')
+    plt.rcParams['figure.figsize'] = (8, 8)
+    plt.show()
 
 
     fld, wvl, foc = osp.lookup_fld_wvl_focus(0)
-    #sm.list_model()
-    #sm.list_surfaces()
+    sm.list_model()
+    sm.list_surfaces()
     efl=pm.opt_model['analysis_results']['parax_data'].fod.efl
 
-    #pm.first_order_data()
+    pm.first_order_data()
     opm.update_model()
 
     # total_length=0
@@ -124,9 +105,8 @@ def calc_loss_mute(path2model):
 
 
     thickness_list,thickness_material_list,thickness_air_list, number_of_surfaces=get_thichness(sm)
-    #print(thickness_list)
+    print(thickness_list)
     total_length=np.sum(thickness_list[1:])
-
     min_thickness=np.min(thickness_material_list)
     min_thickness_air=np.min(thickness_air_list)
     if (total_length-total_length_for_loss)>0:
@@ -161,93 +141,17 @@ def calc_loss_mute(path2model):
             loss_rms=np.sqrt(np.sum((1e3*r_psf[:dl])**2)/dl)
             loss_rms_all=loss_rms_all+loss_rms
 
+            print(f'{idx_field=}, {idx_wavelength=}, {enclosed_energy=},  {loss_enclosed_energy=},  {loss_rms=}')
             temp=temp+1
     loss_enclosed_energy_all=loss_enclosed_energy_all/temp
     loss_rms_all=loss_rms_all/temp
     loss=loss_focus+loss_FD+loss_total_length+loss_min_thickness+loss_min_thickness_air+loss_enclosed_energy_all+loss_rms_all
+    print(f'{loss_focus=}, {loss_FD=},  {loss_total_length=},  {loss_min_thickness=},  {loss_min_thickness_air=},  {loss_enclosed_energy_all=},  {loss_rms_all=}')
+    layout_plt0 = plt.figure(FigureClass=InteractiveLayout, opt_model=opm,
+                            do_draw_rays=True, do_paraxial_layout=False,
+                            is_dark=isdark).plot()
+    print(f'final loss:{loss}')
     return(loss)
-
-def generate_random_system():
-    """1) реализовать определение границ внутри этой системы 
-    2) добавить аргумент,который определяет что линза последняя, для нее не будет 
-    генирироваться толщина эта функция будет вызываться внутри фунции создающую  модель"""
-    system = []
-    t_1=random.uniform(0.6,1.6)
-    k_1=random.uniform(0.001, 1.0)
-    
-    air_t_1=random.uniform(0.7,1.2)
-    
-    t_2=random.uniform(0.5,1)
-    k_2=random.uniform(0.001, 1.0)
-    
-    air_t_2=random.uniform(0.35,1)
-    
-    t_3=random.uniform(0.35,1)
-    k_3=random.uniform(0.001, 1.0)
-    
-    air_t_3=random.uniform(0.4,0.8)
-    
-    t_4=random.uniform(0.4, 0.6)
-    k_4=random.uniform(0.001, 1.0)
-    
-    air_t_4=random.uniform(0.35,0.6)
-    
-    t_5=random.uniform(0.35,0.6)
-    k_5=random.uniform(0.001, 1.0)
-    
-    air_t_5=random.uniform(0.4,0.8)
-    
-    
-    
-    r_1 = random.uniform(1.001, 10.0)
-    air_r_1 = random.uniform(1.001, 10.0)
-    
-    r_2 = random.uniform(-6.0, -1.01)
-    air_r_2 = random.uniform(-6.0, -1.01)
-    
-    random_list = [random.choice([-1, 1]) for _ in range(5)]
-    r_3 = random.uniform(1.001, 10.0)*random_list[0]
-    air_r_3 = random.uniform(1.001, 10.0)*random_list[1]
-    
-    r_4 = random.uniform(1.001, 10.0)*random_list[2]
-    air_r_4 = random.uniform(1.001, 10.0)*random_list[3]
-    
-    r_5 = random.uniform(1.001, 10.0)*random_list[4]
-    
-    sd_1=random.uniform(0.601, 3)
-    air_sd_1=random.uniform(1.001, 3)
-    
-    sd_2=random.uniform(0.6, 3)
-    air_sd_2=random.uniform(1.001, 3.0)
-    
-    sd_3=random.uniform(0.6001, 3.0)
-    air_sd_3=random.uniform(1.001, 3.0)
-    
-    sd_4=random.uniform(0.6001, 3.0)
-    air_sd_4=random.uniform(1.001, 3.0)
-    
-    sd_5=random.uniform(0.6001, 3.0)
-
-    
-    system.extend([
-        t_1,k_1,air_t_1,
-                   t_2,k_2,air_t_2,
-                   t_3,k_3,air_t_3,
-                   t_4,k_4,air_t_4,
-                   t_5,k_5,air_t_5,
-                   r_1, air_r_1, r_2, air_r_2 ,r_3 ,air_r_3 ,r_4 ,air_r_4 , r_5,
-                   ])
-    system.extend(generate_random_coefficients())
-    system.extend(generate_random_coefficients())
-    system.extend(generate_random_coefficients())
-    system.extend(generate_random_coefficients())
-    system.extend(generate_random_coefficients())
-    system.extend(generate_random_coefficients())
-    system.extend(generate_random_coefficients())
-    system.extend(generate_random_coefficients())
-    system.extend(generate_random_coefficients())
-    system.extend([sd_1, air_sd_1, sd_2, air_sd_2 ,sd_3 ,air_sd_3 ,sd_4 ,air_sd_4 , sd_5])
-    return system
 
 
 
@@ -394,85 +298,9 @@ def evaluate_system(system):
         sm.add_surface([0.,air_t_5])
         
         opm.update_model()
-        return [calc_loss_mute(opm)]
+        return [calc_loss(opm)]
     except: return[10000000]
 
-test=generate_random_system()
-print(test)
-result = evaluate_system(test)  # Здесь вызываем функцию evaluate_system
+
+result = evaluate_system([1.498187902042782, 0.15348811971351867, 1.0104282842954864, 0.6742859419362837, 0.05929292105259396, 0.3983491028584521, 0.35409304803728947, 0.9246055138758487, 0.4072960366533883, 0.5436684855035948, 0.5516336630116315, 0.5321807701654718, 0.3971638799375563, 0.8972095459912056, 0.774813602456447, 3.3406164251155688, 2.135322815187548, -4.629035986664633, -2.028775460574962, 8.963661572051038, -9.702631871437124, -3.801523412860063, -2.8976092301823666, -5.7202745733202125, 0, 0, 2.6992564632995634e-05, 3.7011019918846075e-06, 7.824698496947753e-06, 9.935177210981969e-05, -4.079040225532404e-05, -9.601296770178418e-05, 3.981645750933886e-05, 8.65183043445683e-05, 0, 0, -8.805246900943456e-05, 1.3925366530917826e-05, 4.691619995797072e-05, -4.216447735503554e-06, 4.1527018709000777e-05, 7.996465120503875e-06, -5.07014588150758e-05, 6.367837458210199e-05, 0, 0, 7.921787369747812e-05, 3.589170464242626e-05, -1.2615644226255296e-05, 1.2844274848410227e-05, -3.8447234282676734e-05, 5.538320843008323e-05, 6.678736343943978e-05, -6.474460692926953e-05, 0, 0, 1.4102438295662373e-05, -8.130038971077381e-05, 3.5704182800234187e-06, -9.719054362376174e-05, -8.406370984077131e-06, 1.339312106658113e-06, 7.193267170903793e-05, -7.995954921091372e-05, 0, 0, -1.7699192339949924e-05, 7.809022017664947e-05, -5.2548082779729956e-06, -2.384853588159377e-05, 5.683701426247667e-05, -1.689665150117779e-05, 6.077398892047034e-05, 7.122522992400228e-05, 0, 0, -3.4753870011782585e-05, -4.477487513818668e-05, -3.1551127500856806e-05, -7.146969803828862e-05, 5.5260666633393936e-05, -4.315111987233897e-05, -4.200125522042466e-05, -8.316555547496567e-05, 0, 0, -6.600561756828431e-05, 8.430585176543734e-05, -4.227677043504572e-05, 6.799100031911757e-05, 4.654833964248528e-05, 2.160758809613567e-05, -1.4718947884214821e-05, -7.337283750666476e-05, 0, 0, 2.6328239688951557e-05, -3.605292642070972e-05, 2.8633852610418826e-05, -6.035838925051427e-05, 4.6225401194922063e-07, 4.020821971009523e-05, -6.434199337672422e-05, 7.767752161406707e-05, 0, 0, -8.228539014230465e-05, 4.356420510709005e-05, 6.8203063471995e-05, -1.0907619708189654e-07, 7.835364133000783e-05, 5.9607500567005435e-05, 4.017981113712159e-05, -3.227519496895049e-05, 1.8522428923812224, 1.0887327277175107, 0.7316424002507023, 1.1812208372037696, 2.458456044379818, 2.0458382042663654, 0.6222681708515645, 2.783616380339546, 2.5235068230572058])
 print(result)
-
-
-def custom_mutate(individual, mu, sigma, indpb):
-    for i in range(len(individual)):
-        # Первый и третий параметры оставляем без мутации
-        if i not in  [0, 1, 2, 3, 4, 5, 6,7,8,9,10,11,12,13,14]:
-            individual[i] += random.gauss(mu, sigma) if random.random() < indpb else 0.0
-    return individual,
-
-
-def custom_initRepeat(container, func, n):
-    """Call the function *func* *n* times and return the results in a
-    container type `container`
-
-    :param container: The type to put in the data from func.
-    :param func: The function that will be called n times to fill the
-                 container.
-    :param n: The number of times to repeat func.
-    :returns: An instance of the container filled with data from func.
-
-    This helper function can be used in conjunction with a Toolbox
-    to register a generator of filled containers, as individuals or
-    population.
-
-        >>> import random
-        >>> random.seed(42)
-        >>> initRepeat(list, random.random, 2) # doctest: +ELLIPSIS,
-        ...                                    # doctest: +NORMALIZE_WHITESPACE
-        [0.6394..., 0.0250...]
-
-    See the :ref:`list-of-floats` and :ref:`population` tutorials for more examples.
-    """
-    count=0
-    while True:
-        ind=func()
-        if evaluate_system(ind)[0]<2000: 
-            container(ind)
-            count+=1
-        if count==n:break
-    return container(func() for _ in range(n))
-
-
-#Creating obgects
-creator.create("FitnessMin", base.Fitness, weights=(-1.0,))
-creator.create("Individual", list, fitness=creator.FitnessMin)
-
-
-
-
-toolbox = base.Toolbox()
-toolbox.register("attribute", generate_random_system)
-toolbox.register("individual", tools.initIterate, creator.Individual,
-                 toolbox.attribute)
-toolbox.register("population", custom_initRepeat, list, toolbox.individual)
-
-#Operators
-toolbox.register("mate", tools.cxOnePoint)
-toolbox.register("mutate", custom_mutate, mu=0, sigma=1, indpb=0.1)
-toolbox.register("select", tools.selTournament, tournsize=3) 
-toolbox.register("evaluate", evaluate_system)
-
-def main():
-    CXPB, MUTPB, NGEN = 0.5, 0.4, 64
-    population = toolbox.population(n=100)
-    population, logbook = algorithms.eaSimple(population, toolbox,
-                                        cxpb=CXPB,
-                                        mutpb=MUTPB,
-                                        ngen=NGEN,
-                                        verbose=True)
-    stats = tools.Statistics(lambda ind: ind.fitness.values)
-    return population, logbook
-population, logbook = main()
-res=list(map(evaluate_system,population))
-res_1=[i[0] for i in res]
-print(population[res_1.index(min(res_1))])

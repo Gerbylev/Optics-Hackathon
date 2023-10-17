@@ -12,7 +12,7 @@ import re
 import io
 
 
-def generate_random_coefficients(num_coeffs=8, min_value=-0.0001, max_value=0.0001):
+def generate_random_coefficients(num_coeffs=8, min_value=-0.00001, max_value=0.00001):
     """Генерирует случайные коэффициенты для RadialPolynomial.
 
     Args:
@@ -214,19 +214,19 @@ def generate_random_system():
     
     r_5 = random.uniform(1.001, 10.0)*random_list[4]
     
-    sd_1=random.uniform(0.601, 3)
-    air_sd_1=random.uniform(1.001, 3)
+    sd_1=random.uniform(0.601, 1)
+    air_sd_1=random.uniform(1.001, 1)
     
-    sd_2=random.uniform(0.6, 3)
-    air_sd_2=random.uniform(1.001, 3.0)
+    sd_2=random.uniform(0.6, 1)
+    air_sd_2=random.uniform(1.001, 1.0)
     
-    sd_3=random.uniform(0.6001, 3.0)
-    air_sd_3=random.uniform(1.001, 3.0)
+    sd_3=random.uniform(0.6001, 1.0)
+    air_sd_3=random.uniform(1.001, 1.0)
     
-    sd_4=random.uniform(0.6001, 3.0)
-    air_sd_4=random.uniform(1.001, 3.0)
+    sd_4=random.uniform(0.6001, 1.0)
+    air_sd_4=random.uniform(1.001, 1.0)
     
-    sd_5=random.uniform(0.6001, 3.0)
+    sd_5=random.uniform(0.6001, 1.0)
 
     
     system.extend([
@@ -463,8 +463,8 @@ toolbox.register("select", tools.selTournament, tournsize=3)
 toolbox.register("evaluate", evaluate_system)
 
 def main():
-    CXPB, MUTPB, NGEN = 0.5, 0.4, 64
-    population = toolbox.population(n=100)
+    CXPB, MUTPB, NGEN = 0.5, 0.4, 24
+    population = toolbox.population(n=32)
     population, logbook = algorithms.eaSimple(population, toolbox,
                                         cxpb=CXPB,
                                         mutpb=MUTPB,
@@ -475,4 +475,163 @@ def main():
 population, logbook = main()
 res=list(map(evaluate_system,population))
 res_1=[i[0] for i in res]
-print(population[res_1.index(min(res_1))])
+best_individ=population[res_1.index(min(res_1))]
+print(evaluate_system(best_individ))
+
+
+# Функция для оценки оптической системы
+def save_system(system, do_draw=True, path='result.roa'):
+
+    opm = OpticalModel() # create new model
+
+    sm = opm['seq_model']
+    osp = opm['optical_spec']
+    pm = opm['parax_model']
+    em = opm['ele_model']
+    pt = opm['part_tree']
+    opm.system_spec.title = 'Test Model'
+    opm.system_spec.dimensions = 'mm'
+
+    osp['pupil'] = PupilSpec(osp, value=2.5)
+    osp['fov'] = FieldSpec(osp, key=['object', 'angle'], is_relative=False, flds=[0., 5., 10., 15., 20.])
+    osp['wvls'] = WvlSpec([(470, 1.0), (650, 1.0)], ref_wl=1)
+    opm.radius_mode = True
+    sm.do_apertures = False
+    sm.gaps[0].thi=1e10
+
+    sm.add_surface([0., 0.])
+    sm.set_stop()
+    
+    sd_1=system[114]
+    r_1=system[15]
+    t_1 = system[0]
+    k_1 = system[1]
+
+    medium_1_1 = 1.54 * k_1 + 1.67 * (1 - k_1)
+    medium_2_1 = 75.0 * k_1 + 39.0 * (1 - k_1)
+    
+    coefs_1=system[24:34]
+
+    sm.add_surface([r_1,t_1 , medium_1_1, medium_2_1],sd=sd_1)
+    sm.ifcs[sm.cur_surface].profile = EvenPolynomial(r=r_1,
+                            coefs=coefs_1)
+    
+    air_sd_1=system[115]
+    air_r_1=system[16]
+    air_t_1=system[2]
+    air_coefs_1=system[34:44]
+
+    sm.add_surface([air_r_1, air_t_1],sd=air_sd_1)
+    sm.ifcs[sm.cur_surface].profile = EvenPolynomial(r=air_r_1,
+                            coefs=air_coefs_1)
+    
+    sd_2=system[116]
+    r_2=system[17]
+    t_2 = system[3]
+    k_2 = system[4]
+
+    medium_1_2 = 1.54 * k_2 + 1.67 * (1 - k_2)
+    medium_2_2 = 75.0 * k_2 + 39.0 * (1 - k_2)
+    
+    coefs_2=system[44:54]
+    
+    sm.add_surface([r_2, t_2, medium_1_2, medium_2_2], sd=sd_2)
+    sm.ifcs[sm.cur_surface].profile = EvenPolynomial(r=r_2,
+                            coefs=coefs_2)
+    
+    air_sd_2=system[117]
+    air_r_2=system[18]
+    air_t_2=system[5]
+    air_coefs_2=system[54:64]
+
+    sm.add_surface([air_r_2, air_t_2], sd=air_sd_2)
+    sm.ifcs[sm.cur_surface].profile = EvenPolynomial(r=air_r_2,
+                            coefs=air_coefs_2)
+    
+    sd_3=system[118]
+    r_3=system[19]
+    t_3 = system[6]
+    k_3 = system[7]
+
+    medium_1_3 = 1.54 * k_3 + 1.67 * (1 - k_3)
+    medium_2_3 = 75.0 * k_3 + 39.0 * (1 - k_3)
+    
+    coefs_3=system[64:74]
+    
+    sm.add_surface([r_3, t_3, medium_1_3, medium_2_3],sd=sd_3)
+    sm.ifcs[sm.cur_surface].profile = EvenPolynomial(r=r_3,
+                            coefs=coefs_3)
+    
+    air_sd_3=system[119]
+    air_r_3=system[20]
+    air_t_3=system[8]
+    air_coefs_3=system[74:84]
+
+    sm.add_surface([air_r_3, air_t_3], sd=air_sd_3)
+    sm.ifcs[sm.cur_surface].profile = EvenPolynomial(r=air_r_3,
+                            coefs=air_coefs_3)
+    
+    sd_4=system[120]
+    r_4=system[21]
+    t_4 = system[9]
+    k_4 = system[10]
+
+    medium_1_4 = 1.54 * k_4 + 1.67 * (1 - k_4)
+    medium_2_4 = 75.0 * k_4 + 39.0 * (1 - k_4)
+    
+    coefs_4=system[84:94]
+    
+    sm.add_surface([r_4, t_4, medium_1_4, medium_2_4],sd=sd_4)
+    sm.ifcs[sm.cur_surface].profile = EvenPolynomial(r=r_4,
+                            coefs=coefs_4)
+    
+    air_sd_4=system[121]
+    air_r_4=system[22]
+    air_t_4=system[11]
+    air_coefs_4=system[94:104]
+
+    sm.add_surface([air_r_4, air_t_4], sd=air_sd_4)
+    sm.ifcs[sm.cur_surface].profile = EvenPolynomial(r=air_r_4,
+                            coefs=air_coefs_4)
+    
+    sd_5=system[122]
+    r_5=system[23]
+    t_5 = system[12]
+    k_5 = system[13]
+
+    medium_1_5 = 1.54 * k_5 + 1.67 * (1 - k_5)
+    medium_2_5 = 75.0 * k_5 + 39.0 * (1 - k_5)
+    
+    coefs_5=system[104:114]
+    
+    sm.add_surface([r_5, t_5, medium_1_5, medium_2_5],sd=sd_5)
+    sm.ifcs[sm.cur_surface].profile = EvenPolynomial(r=r_5,
+                            coefs=coefs_5)
+
+    air_t_5=system[14]
+
+    sm.add_surface([0.,air_t_5])
+    
+    opm.update_model()
+    if do_draw:
+        isdark = False
+        # 1 plot
+        layout_plt0 = plt.figure(FigureClass=InteractiveLayout, opt_model=opm,
+                                do_draw_rays=True, do_paraxial_layout=False,
+                                is_dark=isdark).plot()
+        # 2 plot
+        spot_plt = plt.figure(FigureClass=SpotDiagramFigure, opt_model=opm,
+                      scale_type=Fit.All_Same, dpi=200, is_dark=isdark).plot()
+
+        # 3 plot
+        to_pkg = compute_third_order(opm)
+        fig, ax = plt.subplots()
+        ax.set_xlabel('Surface')
+        ax.set_ylabel('third order aberration')
+        ax.set_title('Surface by surface third order aberrations')
+        to_pkg.plot.bar(ax=ax, rot=0)
+        ax.grid(True)
+        fig.tight_layout()
+
+    opm.save_model(path)
+save_system(best_individ)

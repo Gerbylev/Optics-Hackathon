@@ -10,9 +10,11 @@ import random
 isdark = False
 import re
 import io
+import warnings
 
+warnings.filterwarnings('ignore')
 
-def generate_random_coefficients(num_coeffs=8, min_value=-0.1, max_value=0.1):
+def generate_random_coefficients(num_coeffs=8, min_value=-0.0000001, max_value=0.0001):
     """Генерирует случайные коэффициенты для RadialPolynomial.
 
     Args:
@@ -210,7 +212,7 @@ def generate_random_system(step=1,limit=7):
 
 
 
-def evaluate_system(system, step, paramer=[]):
+def evaluate_system(system, step, paramer=[], save_system=False):
     # Здесь вызывайте вашу функцию calc_loss(), передавая параметры системы
     # и получая метрики качества изображения, например, Encircled Energy и Spot RMS.
     # Затем объедините метрики в одну целевую функцию для оптимизации.
@@ -336,30 +338,33 @@ def evaluate_system(system, step, paramer=[]):
             sm.add_surface([0.,air_t_5])
             
             opm.update_model()
+            if save_system: opm.save_model(f'loss_{calc_loss_mute(opm)}.roa')
             return [calc_loss_mute(opm)]
     except: return[10000000]
     
 
-def main(func_step=1, params=[]):    
+def main(func_step=1, params=[], variation_percentage=50):    
     def custom_mutate(individual, mu, sigma, indpb, step=func_step):
         if step==1:
             for i in range(len(individual)):
                 individual[i] += random.gauss(mu, sigma) if random.random() < indpb else 0.0
         else: 
             for i in range(30):
-                individual[i] += random.gauss(mu, sigma) if random.random() < indpb else 0.0
+                individual[i] += random.uniform(individual[i] - (individual[i] * variation_percentage / 100), individual[i] + (individual[i] * variation_percentage / 100))
         return individual,
 
 
     def custom_initRepeat(container, func, n, step=func_step):
         if step==1: porog = 1500
-        else: porog = 10000
+        else: porog = 600
         count=0
         while True:
             ind=func()
             if evaluate_system(ind, step=func_step, paramer=params)[0]<porog: 
                 container(ind)
                 count+=1
+                if count%15==0 and step==2: evaluate_system(ind, step=func_step, paramer=params, save_system=True)
+                print(count)
             if count==n:break
         return container(func() for _ in range(n))
 
@@ -383,8 +388,8 @@ def main(func_step=1, params=[]):
     toolbox.register("select", tools.selTournament, tournsize=3) 
     toolbox.register("evaluate", function=evaluate_system, step=func_step, paramer=params)
 
-    CXPB, MUTPB, NGEN = 0.5, 0.4, 5
-    population = toolbox.population(n=4)
+    CXPB, MUTPB, NGEN = 0.5, 0.4, 60
+    population = toolbox.population(n=64)
     population, logbook = algorithms.eaSimple(population, toolbox,
                                         cxpb=CXPB,
                                         mutpb=MUTPB,
@@ -405,5 +410,5 @@ population_2, _ = main(params=best_individ, func_step=2)
 res_2=list(map(partial(evaluate_system, step=2, paramer=best_individ),population_2))
 res_3=[i[0] for i in res_2]
 best_individ_ever=population_2[res_3.index(min(res_3))]
-print(evaluate_system(best_individ_ever, step=2, paramer=best_individ))
+print(evaluate_system(best_individ_ever, step=2, paramer=best_individ, save_system=True))
 

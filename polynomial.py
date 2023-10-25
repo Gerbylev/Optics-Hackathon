@@ -1,4 +1,4 @@
-from scipy.optimize import newton
+from scipy.optimize import fsolve
 from matplotlib.colors import LogNorm, PowerNorm, Normalize
 from rayoptics.util.misc_math import normalize
 from contextlib import redirect_stdout
@@ -32,34 +32,31 @@ def generate_random_coefficients(num_coeffs=8, min_value=-0.001, max_value=0.001
     return coefficients
 
 
-def find_intersection(func1):
-    def convertor(coefs):
-        reversed_list = coefs[::-1]  # Реверсируем входной список
-        result_list = [item for sublist in [[x, 0] for x in reversed_list] for item in sublist]
-        result_list.extend([0])  
-        return result_list
-    func1_1=convertor(func1)
+def find_intersection(poly1, poly2,tfloat, interval=[0.5, 3],   tolerance=0.001):
+    # poly1 и poly2 - коэффициенты полиномов в порядке убывания степени
+    # interval - заданный отрезок [a, b]
 
-    # Определите функции, которые вы хотите найти пересечение
-    def f1(x):
-        return np.polyval(func1_1, x)
+    # Функция, которую будем решать
+    try:
+        def convertor(coefs, n=0):
+            reversed_list = coefs[::-1]  # Реверсируем входной список
+            result_list = [item for sublist in [[x, 0] for x in reversed_list] for item in sublist]
+            result_list.extend([n])  
+            return result_list
+        poly1_1=convertor(poly1)
+        poly2_1=convertor(poly2,n=tfloat)
+        x_values = np.linspace(interval[0], interval[1], 100000)
+        intersections = []
 
+        for x in x_values:
+            y1 = np.polyval(poly1_1, x)
+            y2 = np.polyval(poly2_1, x)
 
-    # Найдите приближенное начальное значение x0 для метода Ньютона
+            if abs(y1 - y2) < tolerance:
+                intersections.append((x, y1))
 
-    # poly_coeffs - список коэффициентов полинома (начиная с старшей степени)
-
-    roots = np.roots(func1_1)
-    
-
-    avg_root = sum(roots) / len(roots)
-
-
-    # Используйте метод Ньютона для нахождения пересечения
-    intersection = newton(lambda x: f1(x), avg_root)
-    
-    return intersection
-
+        return max(intersections)
+    except: return 1000
 def calc_loss_mute(path2model):
     efl_for_loss=5                      #mm
     fD_for_loss=2.1
@@ -197,7 +194,7 @@ def calc_loss_mute(path2model):
     loss=loss_focus+loss_FD+loss_total_length+loss_min_thickness+loss_min_thickness_air+loss_enclosed_energy_all+loss_rms_all
     return(loss)
 
-def generate_random_system(step=1,limit=7):
+def generate_random_system(step=1,limit=7, par=[]):
     """1) реализовать определение границ внутри этой системы 
     2) добавить аргумент,который определяет что линза последняя, для нее не будет 
     генирироваться толщина эта функция будет вызываться внутри фунции создающую  модель"""
@@ -235,12 +232,16 @@ def generate_random_system(step=1,limit=7):
     else:
         syst=[]
         coef_1=generate_random_coefficients()
-        sd_1=find_intersection(coef_1)
+        air_coef_1=generate_random_coefficients()
+        sd_1=find_intersection(coef_1, air_coef_1, par[0])
         
         coef_2=generate_random_coefficients()
-        sd_2=find_intersection(coef_2)
+        air_coef_2=generate_random_coefficients()
+        sd_2=find_intersection(coef_2, air_coef_2, par[3])
         syst.extend(coef_1)
+        syst.extend(air_coef_1)
         syst.extend(coef_2)
+        syst.extend(air_coef_2)
         syst.extend([sd_1,sd_2])
 
     return syst
@@ -339,7 +340,7 @@ def evaluate_system(system, step, paramer=[], save_system=False):
             sm.add_surface([0., 0.])
             sm.set_stop()
             
-            sd_1=system[20]
+            sd_1=system[40]
             r_1=paramer[6]
             t_1 = paramer[0]
             k_1 = paramer[1]
@@ -351,15 +352,15 @@ def evaluate_system(system, step, paramer=[], save_system=False):
             sm.add_surface([r_1,t_1 , medium_1_1, medium_2_1],sd=sd_1)
             sm.ifcs[sm.cur_surface].profile = EvenPolynomial(r=r_1, coefs=coef_1)
             
-            air_sd_1=system[20]
+            air_sd_1=system[40]
             air_r_1=paramer[7]
             air_t_1=paramer[2]
-            air_coef_1=[-x for x in coef_1]
+            air_coef_1=system[10:20]
 
             sm.add_surface([air_r_1, air_t_1],sd=air_sd_1)
             sm.ifcs[sm.cur_surface].profile = EvenPolynomial(r=air_r_1,coefs=air_coef_1)
             
-            sd_2=system[21]
+            sd_2=system[41]
             r_2=paramer[8]
             t_2 = paramer[3]
             k_2 = paramer[4]
@@ -367,20 +368,21 @@ def evaluate_system(system, step, paramer=[], save_system=False):
             medium_1_2 = 1.54 * k_2 + 1.67 * (1 - k_2)
             medium_2_2 = 75.0 * k_2 + 39.0 * (1 - k_2)
             
-            coef_2=system[10:20]
+            coef_2=system[20:30]
             sm.add_surface([r_2, t_2, medium_1_2, medium_2_2], sd=sd_2)
             sm.ifcs[sm.cur_surface].profile = EvenPolynomial(r=r_2,coefs=coef_2)
 
             air_t_5=paramer[5]
             air_r_5=paramer[9]
-            air_sd_5=system[21]
-            air_coef_2=[-x for x in coef_2]
+            air_sd_5=system[41]
+            air_coef_2=system[30:40]
 
             sm.add_surface([air_r_5, air_t_5],sd=air_sd_5)
             sm.ifcs[sm.cur_surface].profile = EvenPolynomial(r=air_r_5,coefs=air_coef_2)
             
             opm.update_model()
             if save_system: opm.save_model(f'loss_{calc_loss_mute(opm)}.roa')
+            print(calc_loss_mute(opm))
             return [calc_loss_mute(opm)]
     except: return[10000000]
     
@@ -419,7 +421,7 @@ def main(func_step=1, params=[], variation_percentage=50):
 
 
     toolbox = base.Toolbox()
-    toolbox.register("attribute", generate_random_system, step=func_step,)
+    toolbox.register("attribute", generate_random_system, step=func_step,par=params)
     toolbox.register("individual", tools.initIterate, creator.Individual,
                     toolbox.attribute)
     toolbox.register("population", custom_initRepeat, list, toolbox.individual, step=func_step)

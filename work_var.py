@@ -388,8 +388,8 @@ def main(func_step=1, params=[], variation_percentage=50):
     toolbox.register("select", tools.selTournament, tournsize=3) 
     toolbox.register("evaluate", function=evaluate_system, step=func_step, paramer=params)
 
-    CXPB, MUTPB, NGEN = 0.5, 0.4, 60
-    population = toolbox.population(n=64)
+    CXPB, MUTPB, NGEN = 0.5, 0.4, 20
+    population = toolbox.population(n=20)
     population, logbook = algorithms.eaSimple(population, toolbox,
                                         cxpb=CXPB,
                                         mutpb=MUTPB,
@@ -410,5 +410,65 @@ population_2, _ = main(params=best_individ, func_step=2)
 res_2=list(map(partial(evaluate_system, step=2, paramer=best_individ),population_2))
 res_3=[i[0] for i in res_2]
 best_individ_ever=population_2[res_3.index(min(res_3))]
-print(evaluate_system(best_individ_ever, step=2, paramer=best_individ, save_system=True))
+# print(evaluate_system(best_individ_ever, step=2, paramer=best_individ, save_system=True))
+
+def find_intersection(par=[], sys=[], interval=[0.2, 2.5], tolerance=0.001, ):
+    try:
+        def convertor(coefs, n=0):
+            reversed_list = coefs[::-1]  # Реверсируем входной список
+            result_list = [item for sublist in [[x, 0] for x in reversed_list] for item in sublist]
+            result_list.extend([n])
+            return result_list
+
+        poly1_1 = convertor(par[0:10])
+        poly2_1 = convertor(par[10:20], n=-sys[0])
+        poly1_2 = convertor(par[20:30])
+        poly2_2 = convertor(par[30:40], n=-sys[3])
+        x_values = np.linspace(interval[0], interval[1], 50000)
+        intersections = []
+        intersections_1 = []
+
+        for x in x_values:
+            y1 = np.polyval(poly1_1, x)
+            y2 = np.polyval(poly2_1, x)
+            y3 = np.polyval(poly1_2, x)
+            y4 = np.polyval(poly2_2, x)
+
+            if abs(y1 - y2) < tolerance:
+                intersections.append(x)
+
+            if abs(y3 - y4) < tolerance:
+                intersections_1.append(x)
+        return [max(intersections), max(intersections_1)]
+    except: return [2, 2]
+
+
+best = {"loss": "", "model": ""}
+for len in range(0,2):
+    flag = True
+    new_individ = best_individ
+    if len == 0:
+        sd = find_intersection(best_individ_ever, best_individ)[0]
+        new_individ[9] = sd
+    else:
+        sd = find_intersection(best_individ_ever, best_individ)[1]
+        new_individ[11] = sd
+    best["loss"] = evaluate_system(best_individ_ever, step=2, paramer=best_individ, save_system=True)
+    best["model"] = new_individ
+    while flag:
+        sd -= 0.1
+        if len == 0:
+            new_individ[9] = sd
+        else:
+            new_individ[11] = sd
+        loss = evaluate_system(new_individ, step=2, paramer=best_individ)
+        if best["loss"] < loss:
+            best["loss"] = loss
+            best["model"] = new_individ
+        if (sd <= 0.01):
+            flag = False
+evaluate_system(best["model"], step=2, paramer=best_individ, save_system=True)
+
+
+
 

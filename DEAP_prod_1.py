@@ -478,8 +478,6 @@ res_1=[i[0] for i in res]
 best_individ=population[res_1.index(min(res_1))]
 print(evaluate_system(best_individ))
 
-
-# Функция для оценки оптической системы
 def save_system(system, do_draw=True, path='result.roa'):
 
     opm = OpticalModel() # create new model
@@ -635,3 +633,40 @@ def save_system(system, do_draw=True, path='result.roa'):
 
     opm.save_model(path)
 save_system(best_individ)
+
+
+
+
+def find_intersection(par=[], sys=[], interval=[0.2, 2.5], tolerance=0.001, ):
+     try:
+        def convertor(coefs, n=0):
+            reversed_list = coefs[::-1]  # Реверсируем входной список
+            result_list = [item for sublist in [[x, 0] for x in reversed_list] for item in sublist]
+            result_list.extend([n])
+            return result_list
+
+        poly1_1 = convertor(par[0:10])
+        poly2_1 = convertor(par[10:20], n=-sys[0])
+        poly1_2 = convertor(par[20:30])
+        poly2_2 = convertor(par[30:40], n=-sys[3])
+        x_values = np.linspace(interval[0], interval[1], 50000)
+        intersections = []
+        intersections_1 = []
+
+        for x in x_values:
+            y1 = np.polyval(poly1_1, x)
+            y2 = np.polyval(poly2_1, x)
+            y3 = np.polyval(poly1_2, x)
+            y4 = np.polyval(poly2_2, x)
+
+            if abs(y1 - y2) < tolerance:
+                intersections.append(x)
+
+            if abs(y3 - y4) < tolerance:
+                intersections_1.append(x)
+        return [random.uniform(0.3 * max(intersections), max(intersections) * 0.8),
+                random.uniform(0.3 * max(intersections_1), max(intersections_1) * 0.8)]
+    except:
+        return 1000
+
+

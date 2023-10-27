@@ -192,22 +192,24 @@ def generate_random_system(step=1,limit=7):
         
         r_2 = random.uniform(-20.0, -1.01)
         
+        air_r_2 = random.uniform(-20.0,-1.001 )
+        
         sd_1=random.uniform(0.201,1)
         air_sd_1=random.uniform(1.001, 1.8)
         
         sd_2=random.uniform(0.75, 1.8)
-    
+        air_sd_2=random.uniform(0.501, 1.8)
         syst.extend([
             t_1,k_1,air_t_1,
             t_2,k_2,air_t_2,
-            r_1, air_r_1, r_2,sd_1, air_sd_1, sd_2,
+            r_1, air_r_1, r_2,sd_1, air_sd_1, sd_2,air_r_2,air_sd_2 
                     ])
     else:
         syst=[]
         syst.extend(generate_random_coefficients())
         syst.extend(generate_random_coefficients())
         syst.extend(generate_random_coefficients())
-
+        syst.extend(generate_random_coefficients())
     return syst
 
 
@@ -275,8 +277,10 @@ def evaluate_system(system, step, paramer=[], save_system=False):
             sm.ifcs[sm.cur_surface].profile = EvenPolynomial(r=r_2,)
 
             air_t_5=system[5]
-
-            sm.add_surface([0.,air_t_5])
+            air_r_5 = system[12]
+            air_sd_5 = system[13]
+            sm.add_surface([air_r_5, air_t_5],sd=air_sd_5)
+            sm.ifcs[sm.cur_surface].profile = EvenPolynomial(r=air_r_5,)
             
             opm.update_model()
             return [calc_loss_mute(opm)]
@@ -334,8 +338,10 @@ def evaluate_system(system, step, paramer=[], save_system=False):
             sm.ifcs[sm.cur_surface].profile = EvenPolynomial(r=r_2,coefs=system[20:30])
 
             air_t_5=paramer[5]
-
-            sm.add_surface([0.,air_t_5])
+            air_r_5 = paramer[12]
+            air_sd_5 = paramer[13]
+            sm.add_surface([air_r_5, air_t_5],sd=air_sd_5)
+            sm.ifcs[sm.cur_surface].profile = EvenPolynomial(r=air_r_5,coefs=system[30:40])
             
             opm.update_model()
             if save_system: opm.save_model(f'loss_{calc_loss_mute(opm)}.roa')
@@ -349,13 +355,13 @@ def main(func_step=1, params=[], variation_percentage=50):
             for i in range(len(individual)):
                 individual[i] += random.gauss(mu, sigma) if random.random() < indpb else 0.0
         else: 
-            for i in range(30):
+            for i in range(40):
                 individual[i] += random.uniform(individual[i] - (individual[i] * variation_percentage / 100), individual[i] + (individual[i] * variation_percentage / 100))
         return individual,
 
 
     def custom_initRepeat(container, func, n, step=func_step):
-        if step==1: porog = 1500
+        if step==1: porog = 1250
         else: porog = 600
         count=0
         while True:
@@ -388,8 +394,8 @@ def main(func_step=1, params=[], variation_percentage=50):
     toolbox.register("select", tools.selTournament, tournsize=3) 
     toolbox.register("evaluate", function=evaluate_system, step=func_step, paramer=params)
 
-    CXPB, MUTPB, NGEN = 0.5, 0.4, 20
-    population = toolbox.population(n=20)
+    CXPB, MUTPB, NGEN = 0.5, 0.1, 200
+    population = toolbox.population(n=200)
     population, logbook = algorithms.eaSimple(population, toolbox,
                                         cxpb=CXPB,
                                         mutpb=MUTPB,
